@@ -1,0 +1,62 @@
+//taken from stack overflow
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <ifaddrs.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+
+char *get_my_ip_addr( ){
+
+    struct ifaddrs *ifaddr, *ifa;
+    int family, s;
+    char host[NI_MAXHOST];
+
+    if (getifaddrs(&ifaddr) == -1) 
+    {
+        perror("getifaddrs");
+        exit(EXIT_FAILURE);
+    }
+
+
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) 
+    {
+        if (ifa->ifa_addr == NULL)
+            continue;  
+
+        s=getnameinfo(ifa->ifa_addr,sizeof(struct sockaddr_in),host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+
+        if((strcmp(ifa->ifa_name,"eth0")==0)&&(ifa->ifa_addr->sa_family==AF_INET))
+        {
+            if (s != 0)
+            {
+                printf("getnameinfo() failed: %s\n", gai_strerror(s));
+                exit(EXIT_FAILURE);
+            }
+            printf("\tInterface : <%s>\n",ifa->ifa_name );
+            printf("\t  Address : <%s>\n", host); 
+        }
+    }
+
+    freeifaddrs(ifaddr);
+	char *ret = (char *)malloc( strlen(host) + 1);
+	strcpy( ret, host );
+	return ret;
+	
+}
+
+void hello_ip( ){
+	printf("\nhello from ip.c\n");
+}
+/*
+int main(int argc, char *argv[])
+{
+
+	char *ip = get_ip_addr();
+	printf("Got IP: %s\n", ip);
+	return 0;
+	
+}
+*/

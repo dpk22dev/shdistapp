@@ -1,0 +1,26 @@
+#ifndef WATCHMAN_H
+#define WATCHMAN_H
+
+//below define it to "172.17.9.17" if not work 
+#define MY_ADDR "172.0.0.1" 
+#define MY_PORT 44445
+#define MAX_ALLOWED_CLIENTS 3
+#define MAX_SENDER_MSG_SIZE 1024
+#define MAX_DIR_SIZE 256
+#define MAX_DIR_NAME_SIZE 64
+
+#define VOLUNTEER_TXT "volunteer.txt"
+#define VOLUNTEER_TXT_MODE "a"
+
+#define BASE_NEEDY "/tmp/needy"
+#define BASE_VOL "/tmp/vol"
+#define BASH_SHELL "/bin/bash"
+#define SH_SHELL "/bin/sh" 
+
+int is_dir_exist( char *path );
+int remove_dir( char *path );
+int init_path( char *dir, char *base );
+int est_con( );
+int receive_msg( );
+
+#endif

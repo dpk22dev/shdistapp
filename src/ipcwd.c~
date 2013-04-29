@@ -1,0 +1,25 @@
+#include "ipcwd.h"
+
+GHashTable* create_ipcwd( ){
+	GHashTable *hash = g_hash_table_new( g_str_hash, g_str_equal );
+}
+
+gboolean does_ip_exist( GHashTable *hash, char *ip ){
+	
+	gboolean ret;
+	gchar *ptr_ip = g_strdup( ip );
+	//ret = g_hash_table_contains( hash, ptr_ip );	
+	
+	ret = FALSE;
+	GHashTableIter iter;
+	gpointer key, value;
+	g_hash_table_iter_init( &iter, hash );
+	while( g_hash_table_iter_next( &iter, &key, &value ) ){
+	 	if( g_strcmp0( key, ptr_ip ) == 0 ){
+			 ret = TRUE;  	
+		}				   
+	}
+	g_free( ptr_ip );
+	return ret;
+	
+}

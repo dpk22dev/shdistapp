@@ -1,0 +1,21 @@
+#ifndef GUI_H
+#define GUI_H
+
+#define VOL_VIEWPORT "vol_viewport"
+#define DONE_VIEWPORT "done_viewport"
+
+//used by distapp.c
+#define ANJUTA_SRC "src/"
+#define TERMINAL_SRC ""
+#define SYSTEM_SRC
+
+struct MyData{
+	
+	GtkWindow *main_window;
+	GtkViewport *vol_viewport;
+	GtkViewport *done_viewport;
+	GtkVBox *vbox;
+	
+}mydata;
+
+#endif

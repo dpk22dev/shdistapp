@@ -1,0 +1,58 @@
+#include "scripts.h"
+#include "headers.h"
+#include "defs.h"
+
+void run_script( char *file ){
+	//check for available shell sh, ksh,or csh etc
+	//must provide new process for it
+	//don't run file ending with ~ as they are temp files
+	if( file[strlen(file) -1 ] == '~' )
+			return;
+	else 
+		printf("running script file %s\n", file );
+	
+	char str[MAX_DIR_SIZE+8];
+	sprintf( str,BASH_SHELL " %s",file);
+	system( str );
+	
+}
+
+void feed_scripts( char *path ){
+
+	printf("path: %s\n", path );
+	DIR *dr = opendir( path );
+	size_t path_len = strlen( path );
+	
+	if( dr ){
+		int len;
+		struct dirent *p;
+		while( p = readdir(dr) ){
+			char *buf;
+			
+			if( strcmp(p->d_name,".") == 0 || strcmp( p->d_name,"..") == 0 ){
+				continue;
+			}
+			len = path_len + strlen(p->d_name) + 2;
+			buf = (char*)malloc( len );
+			snprintf( buf,len,"%s/%s", path, p->d_name );
+
+			if( buf ){
+				struct stat statbuf;				
+
+             	if (!stat(buf, &statbuf)){
+                	if (S_ISREG(statbuf.st_mode)){
+						//----------> check that file doesn't do anything illegal <------------------ 
+                	    //test for script file and run script
+						//printf("trying to run script file %s\n", buf );
+						run_script( buf );
+                	}else{
+						printf("not a regular file %s\n", buf );
+                	    //nothing to do with this file
+                	}
+             	}             	
+			}
+			free(buf);
+		}
+	}
+	
+}

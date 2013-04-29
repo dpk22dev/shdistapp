@@ -1,0 +1,167 @@
+#include "dir_op.h"
+#include "headers.h"
+
+mode_t process_mask;
+//permissions with witch dir and files are created
+#define DIR_PERM 0777
+#define FILE_PERM 0777
+
+int is_dir_exist( char *path ){
+
+	DIR* dir = opendir( path );
+	if (dir){
+		closedir( dir );
+		return 1;
+	}else if( ENOENT == errno ){
+		return 0;
+	}else{
+		return -1;
+	}
+}
+
+
+int remove_dir( char *path ){
+
+	DIR *d = opendir( path );
+	size_t path_len = strlen(path);
+	int r = -1;
+
+	if( d ){
+		struct dirent *p;
+		r = 0;
+		while( r == 0 && ( p = readdir(d) ) ){
+			int r2 = -1;
+			char *buf;
+			size_t len;
+
+			if( strcmp(p->d_name,".") == 0 || strcmp( p->d_name,"..") == 0 ){
+				continue;
+			}
+			len = path_len + strlen(p->d_name) + 2;
+			buf = (char*)malloc( len );
+
+			if( buf ){
+				struct stat statbuf;
+				snprintf(buf, len, "%s/%s", path, p->d_name);
+
+             	if (!stat(buf, &statbuf)){
+                	if (S_ISDIR(statbuf.st_mode)){
+                	    r2 = remove_dir(buf);
+						printf("removed dir %s\n", buf);
+                	}else{
+                	    r2 = unlink(buf);
+						printf("removed file %s\n", buf);
+                	}
+             	}
+
+             	free(buf);
+			}
+			r = r2;
+		}
+		closedir(d);
+	}
+	
+	if( r == 0 ){
+		r = rmdir(path);	
+	}
+	return r;
+}
+
+void iterate_dir( const char *path, const char *rec_ip ){
+
+	DIR *d = opendir( path );
+	size_t path_len = strlen( path );
+	char temp_buf[256];
+
+	if( d ){
+		struct dirent *p;
+		
+		while( p = readdir(d) ){
+		
+			char *buf;
+			size_t len;
+
+			if( strcmp(p->d_name,".") == 0 || strcmp( p->d_name,"..") == 0 ){
+				continue;
+			}
+			len = path_len + strlen(p->d_name) + 2;
+			buf = malloc( len );
+			
+			if( buf ){
+				struct stat statbuf;
+				snprintf( buf, len, "%s/%s", path, p->d_name );
+				if( !stat(buf, &statbuf) ){
+					if( S_ISDIR(statbuf.st_mode) ){
+						//may need to temp_buf[0] = '\0'
+						printf("path: %s  dir: %s\n", path, p->d_name );
+						sprintf( temp_buf, "__DIR__ %s", p->d_name );
+						send_msg( rec_ip, temp_buf );
+						iterate_dir( buf, rec_ip );
+					}else if( S_ISREG(statbuf.st_mode) ){// use else if( S_ISREG(statbuf.st_mode) )
+						printf("FILE FOUND: %s\n", p->d_name );
+						//return;
+						sprintf( temp_buf,"__FILE__ %s", p->d_name );
+						send_msg( rec_ip, temp_buf );
+
+						send_file( rec_ip, buf );
+
+						sprintf( temp_buf,"__FILE_CLOSE__");
+						send_msg( rec_ip, temp_buf );
+						
+					}
+				}
+			}
+			free(buf);
+
+		}
+	} 
+	closedir( d );
+	sprintf(temp_buf,"__DIR_UP__");
+	send_msg( rec_ip, temp_buf );
+	return ;
+
+}
+
+int init_path( char *dirname, char *base ){
+	 
+	if ( is_dir_exist( base )  == 1 )
+	{
+			if( chdir( base ) ){
+				fprintf(stderr, "%s[%d]: ERROR %d: unable to change dir to %s >%s\n",__FILE__,__LINE__, errno, base, strerror(errno) );
+				return -1;
+			}
+	    
+	}else if ( is_dir_exist( base ) == 0 ){
+		//if needy dir doesn't exist create it and cd to it
+		process_mask = umask(0);	
+		if (mkdir( base , DIR_PERM) != 0 && errno != EEXIST){	//if use 777 umask can convert it auto to 755
+			fprintf(stderr, "%s[%d]: ERROR %d: unable to mkdir %s >%s\n",__FILE__,__LINE__, errno,base, strerror(errno) );
+		}
+		umask( process_mask );
+		if( chdir( base ) ){
+			fprintf(stderr, "%s[%d]: ERROR %d: unable to change dir to %s >%s\n",__FILE__,__LINE__, errno, strerror(errno) );
+			return -1;
+		}
+	}else{
+	    /* opendir() failed for some other reason. */
+		fprintf(stderr, "%s[%d]: ERROR %d: unable to mkdir due to unknown reasons >%s\n",__FILE__,__LINE__, errno, strerror(errno) );
+		return -1;
+	}
+
+	if( dirname == NULL )
+		return 1;
+	else{		
+		//get proper dir name. cd to it. 
+		process_mask = umask(0);	
+		if (mkdir( dirname , DIR_PERM) != 0 && errno != EEXIST){	//if use 777 umask can convert it auto to 755
+			fprintf(stderr, "%s[%d]: ERROR %d: unable to mkdir %s in %s >%s\n",__FILE__,__LINE__,errno, dirname, base, strerror(errno) );
+			return -2;
+		}
+		umask( process_mask );
+		//sprintf( temp_arr, "tmp/needy/%s", dirname );
+		//chdir( temp_arr );
+	}
+	
+	return 1;
+
+}
